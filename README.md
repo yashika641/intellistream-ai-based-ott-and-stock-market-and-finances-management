@@ -58,7 +58,7 @@ Modular, scalable and API-driven architecture using **Streamlit (UI)**, **FastAP
 ---
 
 ## 📂 Project Folder Structure
-
+```
 IntelliStreamAI/
 ├── frontend/ # Web UI (Streamlit or React)
 ├── backend/ # FastAPI backend & APIs
@@ -73,7 +73,7 @@ IntelliStreamAI/
 ├── docker-compose.yml
 └── README.md
 
-
+```
 ---
 
 ## 🚀 Getting Started
