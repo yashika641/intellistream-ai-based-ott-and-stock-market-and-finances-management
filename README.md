@@ -60,18 +60,18 @@ Modular, scalable and API-driven architecture using **Streamlit (UI)**, **FastAP
 ## 📂 Project Folder Structure
 
 IntelliStreamAI/
-├── frontend/ # Web UI (Streamlit or React)
-├── backend/ # FastAPI backend & APIs
-├── models/ # ML/NLP models
-├── data/ # Raw, processed & external data
-├── notebooks/ # Jupyter notebooks for EDA, NLP, modeling
-├── dashboard/ # Dashboard rendering logic
-├── utils/ # Helper modules, logger, configs
-├── docs/ # Documentation & diagrams
-├── tests/ # Unit tests
-├── Dockerfile
-├── docker-compose.yml
-└── README.md
+├── frontend/ # Web UI (Streamlit or React)/n
+├── backend/ # FastAPI backend & APIs/n
+├── models/ # ML/NLP models/n
+├── data/ # Raw, processed & external data/n
+├── notebooks/ # Jupyter notebooks for EDA, NLP, modeling/n
+├── dashboard/ # Dashboard rendering logic/n
+├── utils/ # Helper modules, logger, configs/n
+├── docs/ # Documentation & diagrams/n
+├── tests/ # Unit tests/n
+├── Dockerfile/n
+├── docker-compose.yml/n
+└── README.md/n
 
 
 ---
