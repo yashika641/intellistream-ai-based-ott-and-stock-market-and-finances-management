@@ -1,0 +1,25 @@
+project:
+  name: "IntelliStreamAI"
+  version: "v1.0"
+
+paths:
+  data_dir: "data/"
+  model_dir: "models/"
+  scripts_dir: "data/scripts/"
+  churn_model: "models/churn_model/model.pkl"
+  recommender_model: "models/recommender/model.pt"
+
+nlp:
+  embedding_model: "bert-base-uncased"
+  max_length: 512
+
+forecast:
+  prediction_days: 30
+  model_type: "LSTM"
+
+models:
+  use_gpu: true
+  recommender_top_k: 5
+
+dashboard:
+  enable_streamlit_cache: true
