@@ -328,7 +328,7 @@ def main():
         logger.error("Preprocessing failed. Exiting pipeline.")
         return
 
-    df = feature_enfineering(df)
+    df = feature_enfineering(df)  # Keep the name consistent or fix function name
     if df is None:
         logger.error("Feature engineering failed. Exiting pipeline.")
         return
@@ -336,75 +336,36 @@ def main():
     x_train, x_test, y_train, y_test = split_data(df)
     logger.info('Data preprocessing and feature engineering completed')
     unique, counts = np.unique(y_train, return_counts=True)
-    print(dict(zip(unique, counts)))
+    print(f"Training label distribution: {dict(zip(unique, counts))}")
 
+    # Train and evaluate multiple models
     model_training(x_train, y_train, x_test, y_test)
-    logger.info('training catboost model')
-    model=model_training_catboost(x_train,y_train,x_test,y_test)
-    logger.debug('model_training completed')
-    # model=CatBoostClassifier()
-    # print(model.get_all_params().keys())
-    logger.debug('hyperparameter tuning started')
-    best_catboost_model=hyperparamter_tuning_catboost(x_train,y_train)
-    logger.debug('hyperparameter tuning completed')
-    # best_catboost_model=CatBoostClassifier()
-    from sklearn.metrics import precision_recall_curve
-
-    if hasattr(model, 'predict_proba'):
-        y_proba = model.predict_proba(x_test)[:, 1]
-    else:
-        y_proba=model.predict(x_test)[:,1]
-        print("Error: Model does not support predict_proba()")
-    precision, recall, thresholds = precision_recall_curve(y_test, y_proba)
-
-    # Find threshold for max F1 score
-    f1_scores = 2 * (precision * recall) / (precision + recall)
-    best_threshold = thresholds[f1_scores.argmax()]
-
-    print("Best threshold for max F1:", best_threshold)
-
-    # Use best threshold to make predictions
-    y_pred_best = (y_proba >= 0.44).astype(int)
-
-    from sklearn.metrics import classification_report
-    print(classification_report(y_test, y_pred_best))
-
     
-    import shap
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(x_test)
-    shap.summary_plot(shap_values, x_test)
+    logger.info('Training CatBoost model')
+    model, acc, f1, roc = model_training_catboost(x_train, y_train, x_test, y_test)
+    logger.info(f"CatBoost - Accuracy: {acc}, F1: {f1}, ROC AUC: {roc}")
 
-    
+    logger.debug('Hyperparameter tuning started')
+    best_catboost_model = hyperparamter_tuning_catboost(x_train, y_train)
+    logger.debug('Hyperparameter tuning completed')
+
+    # Evaluate best tuned model
+    y_pred_best = best_catboost_model.predict(x_test)
+    y_proba_best = best_catboost_model.predict_proba(x_test)[:, 1]
+    acc_best = accuracy_score(y_test, y_pred_best)
+    f1_best = f1_score(y_test, y_pred_best)
+    roc_best = roc_auc_score(y_test, y_proba_best)
+    logger.info(f"Best CatBoost tuned model - Accuracy: {acc_best}, F1: {f1_best}, ROC AUC: {roc_best}")
     import joblib
-
-    # Save the model to a file
-    joblib.dump(best_catboost_model, 'catboost_best_model.joblib')
-
-
-    logger.info("code ends here and model is saved")
-
-    # model=model_training_linear_regression(x_train,y_train,x_test,y_test)
-    # logger.info('model training completed')
-    # model=LinearRegression()
-    # print(model.get_params().keys())
-
-    # best_linear_model=hyperparameter_tuning_linear_regression(x_train,y_train)
-    # logger.info('Hyperparameter tuning completed')
-    # best_linear_model.fit(x_train,y_train)
-    # y_pred=best_linear_model.predict(x_test)
-    # print(y_pred)
-    # print(y_test)
-    # print('R2 score:',r2_score(y_test,y_pred))
-    # print('MSE:',mean_squared_error(y_test,y_pred))
-    # print('MAE:',mean_absolute_error(y_test,y_pred))
-    # print('MAPE:',mean_absolute_percentage_error(y_test,y_pred))
-    # print('RMSE:',root_mean_squared_error(y_test,y_pred))
-
-
+    # Save the best model
+    joblib.dump(best_catboost_model, 'best_model.joblib')
+    logger.info('Best model saved as best_model.joblib')
     
-
-
+    # You may want to do something with precision, recall, thresholds here
 
 if __name__ == "__main__":
     main()
+
+
+
+ 
