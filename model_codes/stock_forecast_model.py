@@ -66,6 +66,7 @@ def data_preprocess(df):
         logger.info('data preprocessing completed')
         
         
+        
         return df
     except Exception as e:
         logger.error(f"Error in data preprocess: {e}")
@@ -73,6 +74,29 @@ def data_preprocess(df):
     
 def feature_engineering(df):
     try:
+        df_copy = df.copy()
+        print("Before scaling:", df_copy.shape)
+
+            # Any filtering? Check result after it.
+            # e.g., df_copy = df_copy[df_copy['volume'] > 0]
+
+        df_copy.dropna(inplace=True)
+        print("After dropna:", df_copy.shape)
+
+        if df_copy.empty:
+                raise ValueError("DataFrame is empty after preprocessing!")
+
+        scaler = StandardScaler()
+        cols=df.select_dtypes(include=['number']).columns.tolist()
+        df[cols] = scaler.fit_transform(df[cols])
+
+        df['date'] = pd.to_datetime(df['date'])
+
+        # Extract components
+        df['year'] = df['date'].dt.year
+        df['month'] = df['date'].dt.month
+        df['day'] = df['date'].dt.day
+
         logger.info('feature engineering started')
         # Use lowercase column names for consistency
         df['date'] = pd.to_datetime(df['date'])  # Ensure date format
@@ -86,16 +110,7 @@ def feature_engineering(df):
         df['EMA_5'] = df['close'].ewm(span=5, adjust=False).mean()
         df['EMA_20'] = df['close'].ewm(span=20, adjust=False).mean()
         logger.info('exponential moving averages created')
-        # Relative Strength Index (RSI)
-        delta = df['close'].diff()
-        gain = np.where(delta > 0, delta, 0)
-        loss = np.where(delta < 0, -delta, 0)
-        avg_gain = pd.Series(gain).rolling(window=14).mean()
-        avg_loss = pd.Series(loss).rolling(window=14).mean()
-        rs = avg_gain / avg_loss
-        df['RSI_14'] = 100 - (100 / (1 + rs))
 
-        logger.info('relative strength index created')
         # Bollinger Bands
         df['BB_upper'] = df['MA_20'] + 2 * df['close'].rolling(window=20).std()
         df['BB_lower'] = df['MA_20'] - 2 * df['close'].rolling(window=20).std()
@@ -116,14 +131,17 @@ def feature_engineering(df):
         df['close_+2'] = df['close'].shift(-2)  # 2 days ahead close
         logger.info('lag features for previous and next days created')
         # Ensure no NaN values after feature creation
-        df.dropna(inplace=True)
+        print("Before dropna:", df.shape)
+        df.fillna(df.mean(), inplace=True)
+        print(df.isna().sum())
+        # df.dropna(inplace=True)  # Drop any remaining NaN values
+        print("After dropna:", df.shape)
+
         logger.info('NaN values dropped after feature creation')
         # Display updated dataset structure
-        print(df.head())
-        df_copy = df.copy()
-        scaler = StandardScaler()
-        df_scaled = scaler.fit_transform(df_copy)
-        return df_scaled
+        print(df.head(10))
+        
+        return df
     
     except Exception as e:
         logger.error('error in doing feature engineering ')
@@ -230,6 +248,9 @@ def model_training(x_train, y_train, x_test, y_test):
     # === Return Results as DataFrame ===
     df_results = pd.DataFrame(results).T.sort_values('RMSE')
     df_results.reset_index(inplace=True)
+    print(df_results)
+    df_results.columns = ['Model', 'MAE', 'RMSE', 'R2']
+    logger.info('model results compiled into DataFrame')
     # === Optional: Plot ===
     df_results[['MAE', 'RMSE']].plot(kind='bar', figsize=(10, 5))
     plt.title('Model Performance (Lower is Better)')
@@ -255,24 +276,41 @@ def model_training_and_eval(x_train, y_train, x_test, y_test):
     
 def hyperparameter_tuning(x_train, y_train, x_test, y_test):
     try:
+        logger.info('hyperparameter tuning started')
         from sklearn.model_selection import GridSearchCV
         from sklearn.metrics import make_scorer
         model= RandomForestRegressor(random_state=42)
         param_grid={
-            
+            'n_estimators': [100, 200, 300, 500],              # Number of trees
+            'max_depth': [None, 10, 20, 30, 50],               # Tree depth
+            'min_samples_split': [2, 5, 10],                   # Minimum samples to split a node
+            'min_samples_leaf': [1, 2, 4],                     # Minimum samples at a leaf node
+            'max_features': ['auto', 'sqrt', 'log2'],          # Features to consider at each split
+            'bootstrap': [True, False],
+            'verbose':[1,100]# Whether to use bootstrap samples 
         }
+        logger.info('hyperparameter grid defined')
         scorer=make_scorer(mean_squared_error, greater_is_better=False)
+        logger.info('scorer defined for hyperparameter tuning')
         grid_search = GridSearchCV(model, param_grid, scoring=scorer, cv=5, n_jobs=-1)
         grid_search.fit(x_train, y_train)
+        logger.info('hyperparameter tuning completed')
         best_model = grid_search.best_estimator_
+        logger.info('best model found')
         y_pred = best_model.predict(x_test)
+        logger.info('predictions made using best model')
         results = {
             'MAE': mean_absolute_error(y_test, y_pred),
             'RMSE': np.sqrt(mean_squared_error(y_test, y_pred)),
             'R2': r2_score(y_test, y_pred)
         }
+        logger.info('results calculated for best model')
+        results = pd.DataFrame([results])
+        results.columns = ['MAE', 'RMSE', 'R2']
+        
         logger.info(f"Best parameters: {grid_search.best_params_}")
         logger.info(f"Hyperparameter tuning results: {results}")
+        
         return results,grid_search.best_params_,best_model
     
     except Exception as e:
@@ -300,6 +338,10 @@ def main():
         x_train, y_train, x_test, y_test = split_data(df)
         results = model_training(x_train, y_train, x_test, y_test)
         print(results)
+        # model=RandomForestRegressor()
+        # print(model.get_params())
+        best_params, best_model = hyperparameter_tuning(x_train, y_train, x_test, y_test)
+        print(best_params)
         
     except Exception as e:
         logger.error(f"Error in main function: {e}")
