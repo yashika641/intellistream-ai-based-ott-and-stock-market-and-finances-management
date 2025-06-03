@@ -17,6 +17,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import accuracy_score, mean_squared_error, mean_absolute_error, r2_score
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+
 import datetime
 import shap
 import joblib
@@ -24,6 +25,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Dense, LSTM, GRU, Conv1D, Flatten
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
+from sklearn.model_selection import RandomizedSearchCV
 
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -265,10 +267,22 @@ def model_training(x_train, y_train, x_test, y_test):
     
 def model_training_and_eval(x_train, y_train, x_test, y_test):
     try:
-        model= LinearRegression()
-        model.fit(x_train, y_train)
+        model = RandomForestRegressor(verbose=100, n_estimators=500,
+                                     min_samples_split=10, min_samples_leaf=1, 
+                                     max_features='log2', max_depth=20, bootstrap=True)
+        logger.info('Random Forest model initialized with hyperparameters')
+        model=model.fit(x_train, y_train)
+        logger.info('Random Forest model trained')
+        # results=model.evaluate(x_test, y_test)
+        # logger.info('model evaluation completed')
         y_pred = model.predict(x_test)
-        return y_pred
+        results={
+            'MAE': mean_absolute_error(y_test, y_pred),
+            'RMSE': np.sqrt(mean_squared_error(y_test,y_pred)),
+            'R2': r2_score(y_test, y_pred)
+        }
+        logger.info('predictions made using Random Forest model')
+        return model,results
     except Exception as e:
 
         logger.error(f"Error in model training and evaluation: {e}")
@@ -292,10 +306,10 @@ def hyperparameter_tuning(x_train, y_train, x_test, y_test):
         logger.info('hyperparameter grid defined')
         scorer=make_scorer(mean_squared_error, greater_is_better=False)
         logger.info('scorer defined for hyperparameter tuning')
-        grid_search = GridSearchCV(model, param_grid, scoring=scorer, cv=5, n_jobs=-1)
-        grid_search.fit(x_train, y_train)
+        random_search = RandomizedSearchCV(model, param_grid, scoring=scorer, cv=5, n_jobs=-1)
+        random_search.fit(x_train, y_train)
         logger.info('hyperparameter tuning completed')
-        best_model = grid_search.best_estimator_
+        best_model = random_search.best_estimator_
         logger.info('best model found')
         y_pred = best_model.predict(x_test)
         logger.info('predictions made using best model')
@@ -308,10 +322,10 @@ def hyperparameter_tuning(x_train, y_train, x_test, y_test):
         results = pd.DataFrame([results])
         results.columns = ['MAE', 'RMSE', 'R2']
         
-        logger.info(f"Best parameters: {grid_search.best_params_}")
+        logger.info(f"Best parameters: {random_search.best_params_}")
         logger.info(f"Hyperparameter tuning results: {results}")
         
-        return results,grid_search.best_params_,best_model
+        return random_search.best_params_,best_model
     
     except Exception as e:
         logger.error(f"Error in hyperparameter tuning: {e}")
@@ -323,6 +337,7 @@ def save_model(model,model_name):
         model_path=f'model_codes/{model_name}.pkl'
         with open(model_path,'wb'):
             pickle.dump(model,open(model_path,'wb'))
+            logger.info(f"Model saved at {model_path}")
             
         logger.info(f"Model saved at {model_path}")
     except Exception as e:
@@ -336,12 +351,17 @@ def main():
         df=data_preprocess(df)
         df=feature_engineering(df)
         x_train, y_train, x_test, y_test = split_data(df)
-        results = model_training(x_train, y_train, x_test, y_test)
+        # results = model_training(x_train, y_train, x_test, y_test)
+        model,results=model_training_and_eval(x_train, y_train, x_test, y_test)
+        print(model)
         print(results)
         # model=RandomForestRegressor()
         # print(model.get_params())
-        best_params, best_model = hyperparameter_tuning(x_train, y_train, x_test, y_test)
-        print(best_params)
+        # best_params, best_model = hyperparameter_tuning(x_train, y_train, x_test, y_test)
+        # print(best_params)
+        save_model(model, model_name='best_stock_model')
+        logger.info('best model saved successfully and the code ends here')
+        
         
     except Exception as e:
         logger.error(f"Error in main function: {e}")
