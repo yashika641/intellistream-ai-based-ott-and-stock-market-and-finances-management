@@ -1,4 +1,6 @@
 user_id,movie_id,event,watch_time_min,device,timestamp,rating,user_name,age,gender,location,title,genre,release_year,duration_min,movie_name
+
+lorem
 96,146,play,76,Mobile,2024-06-11 16:43:13,,Timothy Gross,27,Other,East Jamesland,Final Whisper,Horror,2020,155,Final Whisper
 92,37,pause,4,Laptop,2023-07-03 20:55:54,,Christopher Taylor,31,Other,Lake David,Hidden Truth,Thriller,2000,126,Hidden Truth
 252,9,stop,70,Mobile,2023-12-20 00:52:50,,Amy Johnson,43,Male,Pearsonview,Last Hour,Sci-Fi,2003,66,Last Hour
