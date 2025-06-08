@@ -16,7 +16,7 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 from catboost import CatBoostClassifier
 from lightgbm import LGBMClassifier
-from sklearn.metrics import accuracy_score,f1_score,roc_auc_score
+from sklearn.metrics import accuracy_score,f1_score,roc_auc_score,classification_report
 from sklearn.metrics import make_scorer,mean_squared_error,mean_absolute_error,r2_score,root_mean_squared_error,mean_absolute_percentage_error
 
 # Add the parent directory (project root) to the Python path
@@ -215,10 +215,12 @@ def model_training_catboost(x_train,y_train,x_test,y_test):
         model=model.fit(x_train,y_train,eval_set=(x_test,y_test),use_best_model=True)
         y_pred=model.predict(x_test)
         acc= accuracy_score(y_test,y_pred)
+        results=classification_report(y_test,y_pred)
+        logger.info('classification report: %s', results)
         roc=roc_auc_score(y_test,y_pred)
         f1=f1_score(y_test,y_pred)
         
-        return model,acc,f1,roc
+        return model,acc,f1,roc,results
         
     except Exception as e:
         logger.error('Error during catboost model training: %s', e)
@@ -342,24 +344,29 @@ def main():
     model_training(x_train, y_train, x_test, y_test)
     
     logger.info('Training CatBoost model')
-    model, acc, f1, roc = model_training_catboost(x_train, y_train, x_test, y_test)
+    model, acc, f1, roc,results = model_training_catboost(x_train, y_train, x_test, y_test)
     logger.info(f"CatBoost - Accuracy: {acc}, F1: {f1}, ROC AUC: {roc}")
 
-    logger.debug('Hyperparameter tuning started')
-    best_catboost_model = hyperparamter_tuning_catboost(x_train, y_train)
-    logger.debug('Hyperparameter tuning completed')
+    # logger.debug('Hyperparameter tuning started')
+    # best_catboost_model = hyperparamter_tuning_catboost(x_train, y_train)
+    # logger.debug('Hyperparameter tuning completed')
 
     # Evaluate best tuned model
-    y_pred_best = best_catboost_model.predict(x_test)
-    y_proba_best = best_catboost_model.predict_proba(x_test)[:, 1]
-    acc_best = accuracy_score(y_test, y_pred_best)
-    f1_best = f1_score(y_test, y_pred_best)
-    roc_best = roc_auc_score(y_test, y_proba_best)
-    logger.info(f"Best CatBoost tuned model - Accuracy: {acc_best}, F1: {f1_best}, ROC AUC: {roc_best}")
-    import joblib
-    # Save the best model
-    joblib.dump(best_catboost_model, 'best_model.joblib')
-    logger.info('Best model saved as best_model.joblib')
+    y_pred_best =  model.predict(x_test)
+    y_proba_best = model.predict_proba(x_test)[:, 1]
+    results_best = classification_report(y_test, y_pred_best)
+    
+    print(results_best)
+    logger.info(f"Best CatBoost tuned model classification report:\n{results_best}")
+    import shap
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(x_test)
+    shap.summary_plot(shap_values, x_test, plot_type="bar")
+    logger.info('SHAP values calculated and summary plot generated')
+    # import joblib
+    # # Save the best model
+    # joblib.dump(best_catboost_model, 'best_model.joblib')
+    # logger.info('Best model saved as best_model.joblib')
     
     # You may want to do something with precision, recall, thresholds here
 

@@ -249,18 +249,18 @@ def model_training(x_train, y_train, x_test, y_test):
     logger.info('deep learning models trained and evaluated')
     # === Return Results as DataFrame ===
     df_results = pd.DataFrame(results).T.sort_values('RMSE')
-    df_results.reset_index(inplace=True)
-    print(df_results)
-    df_results.columns = ['Model', 'MAE', 'RMSE', 'R2']
-    logger.info('model results compiled into DataFrame')
-    # === Optional: Plot ===
-    df_results[['MAE', 'RMSE']].plot(kind='bar', figsize=(10, 5))
-    plt.title('Model Performance (Lower is Better)')
-    plt.ylabel('Error')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.show()
-    logger.info('model training completed')
+    # df_results.reset_index(inplace=True)
+    # print(df_results)
+    # df_results.columns = ['Model', 'MAE', 'RMSE', 'R2']
+    # logger.info('model results compiled into DataFrame')
+    # # === Optional: Plot ===
+    # df_results[['MAE', 'RMSE']].plot(kind='bar', figsize=(10, 5))
+    # plt.title('Model Performance (Lower is Better)')
+    # plt.ylabel('Error')
+    # plt.xticks(rotation=45)
+    # plt.tight_layout()
+    # plt.show()
+    # logger.info('model training completed')
     return df_results
 
             
